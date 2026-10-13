@@ -1,0 +1,38 @@
+# policies/echo.policy
+#
+# Equivalent to supervisor.c's built-in default policy, written out
+# as an external file to demonstrate the mechanism. Run it with:
+#
+#   ./supervisor --policy policies/echo.policy ./agent
+#   ./supervisor --policy policies/echo.policy ./attack
+#
+# Format: see the comment at the top of policy.h.
+
+state INIT
+state BOUND
+state LISTENING
+
+INIT      socket    allow
+INIT      bind      allow -> BOUND
+INIT      connect   allow
+INIT      execve    allow -> INIT
+INIT      execveat  allow -> INIT
+
+BOUND     socket    allow
+BOUND     bind      allow
+BOUND     listen    allow -> LISTENING
+BOUND     connect   allow
+BOUND     execve    allow -> INIT
+BOUND     execveat  allow -> INIT
+
+LISTENING socket    allow
+LISTENING bind      allow
+LISTENING listen    allow
+LISTENING accept    allow
+LISTENING accept4   allow
+LISTENING connect   deny
+LISTENING execve    deny
+LISTENING execveat  deny
+# sendto's real legality is argument-aware and decided in code
+# (see policy.h) — this line only gets it trapped at all.
+LISTENING sendto    deny

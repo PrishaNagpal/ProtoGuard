@@ -1,0 +1,57 @@
+# policies/redis.policy
+#
+# Written from observing `redis-server`'s real behavior first
+# (strace -f), not guessed:
+#
+#   - socket(), bind(), listen() each happen exactly ONCE, from the
+#     main thread, before any clients connect.
+#   - Redis then clone3()s 3-4 background threads (CLONE_THREAD —
+#     i.e. real POSIX threads, same thread-group ID as the main
+#     thread). supervisor.c's get_tgid() maps every notification
+#     from these threads back to the SAME tracked proc_state as the
+#     main thread automatically — no extra policy work needed, and
+#     none of these threads call any of our trapped syscalls in
+#     normal operation.
+#   - accept4() — NOT accept() — is the call Redis uses, and only
+#     fires when a client actually connects; an idle Redis makes NO
+#     accept4() calls at all (it blocks in epoll_wait, which we
+#     don't trap), so there is no idle-polling overhead from this
+#     supervisor.
+#   - No connect(), execve(), execveat(), or sendto() were observed
+#     in normal operation (we run it with --save "" --appendonly no
+#     so no background-save fork happens either).
+#
+# Run (binary path may differ — `which redis-server`):
+#   ./supervisor --policy policies/redis.policy \
+#       /usr/bin/redis-server --port 6380 --bind 127.0.0.1 \
+#       --save "" --appendonly no --daemonize no
+#
+# In another terminal: redis-cli -p 6380 ping / set / get, or
+# redis-benchmark -p 6380 ...
+
+state INIT
+state BOUND
+state LISTENING
+
+INIT      socket    allow
+INIT      bind      allow -> BOUND
+INIT      connect   allow
+INIT      execve    allow -> INIT
+INIT      execveat  allow -> INIT
+
+BOUND     socket    allow
+BOUND     bind      allow
+BOUND     listen    allow -> LISTENING
+BOUND     connect   allow
+BOUND     execve    allow -> INIT
+BOUND     execveat  allow -> INIT
+
+LISTENING socket    allow
+LISTENING bind      allow
+LISTENING listen    allow
+LISTENING accept    allow
+LISTENING accept4   allow
+LISTENING connect   deny
+LISTENING execve    deny
+LISTENING execveat  deny
+LISTENING sendto    deny

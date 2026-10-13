@@ -1,0 +1,6 @@
+Phase 8 bench: 40 start+echo+exit cycles (port 18080)
+no_supervisor         N=40  total=340.3 ms  avg=8.51 ms/run
+supervisor            N=40  total=825.0 ms  avg=20.62 ms/run
+
+Overhead is extra ms per run (fork + seccomp traps + CONTINUE).
+Not a microbenchmark of one syscall; good enough for the lab table.

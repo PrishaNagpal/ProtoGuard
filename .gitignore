@@ -1,0 +1,9 @@
+# build output
+agent
+attack
+attack_exec
+supervisor
+namelist
+*.o
+# traces and generated results
+*.strace

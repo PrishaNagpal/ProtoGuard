@@ -1,0 +1,39 @@
+# policies/strict-no-outbound.policy
+#
+# Stricter than the default: a pure echo server has NO legitimate
+# reason to connect() out even while it is still starting up (e.g.
+# before bind()/listen()). The built-in/echo.policy allows connect()
+# pre-listen (a server that first dials a config service, then
+# listens, is a realistic case); this policy shows a tighter
+# alternative is just a text-file edit away — no rebuild needed.
+#
+#   ./supervisor --policy policies/strict-no-outbound.policy ./agent
+#   ./supervisor --policy policies/strict-no-outbound.policy ./attack
+#      (killed even earlier than with echo.policy, if attack.c ever
+#       tried to connect() before listen() too)
+
+state INIT
+state BOUND
+state LISTENING
+
+INIT      socket    allow
+INIT      bind      allow -> BOUND
+INIT      execve    allow -> INIT
+INIT      execveat  allow -> INIT
+# no "INIT connect allow" line: connect() is deny-by-default here
+
+BOUND     socket    allow
+BOUND     bind      allow
+BOUND     listen    allow -> LISTENING
+BOUND     execve    allow -> INIT
+BOUND     execveat  allow -> INIT
+
+LISTENING socket    allow
+LISTENING bind      allow
+LISTENING listen    allow
+LISTENING accept    allow
+LISTENING accept4   allow
+LISTENING connect   deny
+LISTENING execve    deny
+LISTENING execveat  deny
+LISTENING sendto    deny
