@@ -54,10 +54,10 @@ for entry in "${TESTS[@]}"; do
   printf "%-28s | %-22s | %-22s | %-22s\n" "$label" "$r1" "$r2" "$r3"
 done
 
-echo
-echo "Paste this table into REPORT.md. 'no sandbox' and 'namelist' are"
-echo "expected to show NOT BLOCKED for most rows — that is the point:"
-echo "a name-based allowlist permits the syscall NAME regardless of"
-echo "when it happens. 'supervisor' should show BLOCKED for every row"
-echo "except the two ia32 rows, which are caught by the architecture"
-echo "check (common.h) and so are blocked identically by namelist too."
+# echo
+# echo "Paste this table into REPORT.md. 'no sandbox' and 'namelist' are"
+# echo "expected to show NOT BLOCKED for most rows — that is the point:"
+# echo "a name-based allowlist permits the syscall NAME regardless of"
+# echo "when it happens. 'supervisor' should show BLOCKED for every row"
+# echo "except the two ia32 rows, which are caught by the architecture"
+# echo "check (common.h) and so are blocked identically by namelist too."

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProtoGuard Dashboard</title>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#ffffff; --ink:#1b2430; --mute:#667085; --line:#e4e8ef;
+  --blue:#2563eb; --blue-l:#e0ebff; --green:#15803d; --green-l:#dcfce7;
+  --red:#dc2626; --red-l:#fee2e2; --amber:#b45309; --amber-l:#fef3c7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--line);padding:18px 28px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0}
+header p{margin:0;color:var(--mute);font-size:13px}
+.badge{margin-left:auto;font-size:12px;padding:4px 10px;border-radius:999px;background:var(--amber-l);color:var(--amber);font-weight:600}
+.badge.live{background:var(--green-l);color:var(--green)}
+main{max-width:1180px;margin:24px auto;padding:0 20px;display:grid;gap:20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.card h2{font-size:15px;margin:0 0 14px;color:var(--ink)}
+.controls{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+label{display:grid;gap:4px;font-size:12px;color:var(--mute);font-weight:600}
+select,button{font:inherit;padding:9px 12px;border-radius:9px;border:1px solid var(--line);background:#fff;color:var(--ink)}
+button.run{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600;cursor:pointer}
+button.run:disabled{opacity:.55;cursor:wait}
+.cols{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:20px}
+@media(max-width:860px){.cols{grid-template-columns:1fr}}
+.states{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.node{flex:1;min-width:92px;text-align:center;padding:14px 8px;border-radius:12px;border:2px solid var(--line);background:#f9fafc;color:var(--mute);font-weight:700;font-size:13px;transition:.25s}
+.node.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.node.bad{border-color:var(--red);background:var(--red-l);color:var(--red)}
+.arrow{color:var(--mute);font-size:12px;text-align:center;line-height:1.2}
+.hint{font-size:12px;color:var(--mute);margin:12px 0 0}
+.pcb{margin-top:16px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.pcb dt{color:var(--mute)} .pcb dd{margin:0;font-family:ui-monospace,Consolas,monospace}
+#verdict{margin-top:16px;padding:12px 14px;border-radius:10px;font-weight:700;display:none}
+#verdict.ok{display:block;background:var(--green-l);color:var(--green)}
+#verdict.bad{display:block;background:var(--red-l);color:var(--red)}
+#verdict.warn{display:block;background:var(--amber-l);color:var(--amber)}
+#log{height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fbfcfe;padding:6px}
+.row{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:8px;font:13px ui-monospace,Consolas,monospace;margin-bottom:3px}
+.row .tag{flex:none;font:700 11px system-ui;padding:2px 8px;border-radius:999px}
+.row.allow{background:var(--green-l)} .row.allow .tag{background:#fff;color:var(--green)}
+.row.deny{background:var(--red-l);font-weight:700} .row.deny .tag{background:var(--red);color:#fff}
+.row.name{background:var(--amber-l)} .row.name .tag{background:#fff;color:var(--amber)}
+.row.app{background:var(--blue-l)} .row.app .tag{background:#fff;color:var(--blue)}
+.row.dim{color:var(--mute)}
+.pols{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}
+.pol{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fbfcfe;display:grid;gap:10px;align-content:start}
+.pol h3{margin:0;font-size:15px;font-family:ui-monospace,Consolas,monospace;color:var(--blue)}
+.pol p{margin:0;font-size:13px;color:var(--mute)}
+.sc{display:grid;gap:7px}
+.sbtn{cursor:pointer;text-align:left;font-size:13px;font-weight:600;padding:8px 12px;border-width:1.5px}
+.sbtn.legit{border-color:#86d9a3;color:var(--green);background:var(--green-l)}
+.sbtn.attack{border-color:#f3a5a5;color:var(--red);background:var(--red-l)}
+.sbtn.allowed{border-color:#f0cf7a;color:var(--amber);background:var(--amber-l)}
+.sbtn:disabled{opacity:.5;cursor:wait}
+.pol details{font-size:12px;color:var(--mute)}
+.pol pre{margin:8px 0 0;max-height:220px;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11.5px;color:var(--ink)}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.tab{cursor:pointer;padding:11px 18px;border-radius:10px;border:2px solid var(--line);background:#fff;font:700 14px ui-monospace,Consolas,monospace;color:var(--ink)}
+.tab.on{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.polgrid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px}
+@media(max-width:860px){.polgrid{grid-template-columns:1fr}}
+.polgrid pre{margin:0;max-height:300px;overflow:auto;background:#fbfcfe;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:12px;color:var(--ink)}
+.empty{color:var(--mute);padding:14px;font-size:13px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--mute);text-transform:uppercase;letter-spacing:.04em}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.chip.b{background:var(--green-l);color:var(--green)} .chip.n{background:var(--red-l);color:var(--red)}
+.bars{display:grid;gap:12px}
+.bar{display:grid;grid-template-columns:150px 1fr 90px;gap:12px;align-items:center;font-size:13px}
+.track{height:14px;background:#eef1f6;border-radius:999px;overflow:hidden}
+.fill{height:100%;background:var(--blue);border-radius:999px;transition:width .6s}
+.fill.s{background:#f59e0b}
+
+/* ---- smooth, no-jerk layout ---- */
+html{overflow-y:scroll;scrollbar-gutter:stable}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+#polbody{min-height:350px}
+.polgrid{animation:fadein .25s ease}
+.polgrid pre{height:300px;max-height:none;overflow-y:scroll;overflow-x:auto}
+.row{animation:fadein .2s ease}
+#verdict{display:block !important;min-height:52px;opacity:0;transition:opacity .3s ease}
+#verdict.ok,#verdict.bad,#verdict.warn{opacity:1}
+#bench{min-height:92px} #bench-status{min-height:22px} #hist{min-height:34px}
+.tab,.sbtn,.node,.fill{transition:all .2s ease}
+.tab:hover,.sbtn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 2px 6px rgba(16,24,40,.08)}
+#log,.polgrid pre{scrollbar-width:thin;scrollbar-color:#8fa8d1 #e9eef7}
+#log::-webkit-scrollbar,.polgrid pre::-webkit-scrollbar{width:12px;height:12px}
+#log::-webkit-scrollbar-track,.polgrid pre::-webkit-scrollbar-track{background:#e9eef7;border-radius:8px}
+#log::-webkit-scrollbar-thumb,.polgrid pre::-webkit-scrollbar-thumb{background:#8fa8d1;border-radius:8px;border:2px solid #e9eef7}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>ProtoGuard <span style="font-size:11px;color:var(--mute);font-weight:600">dashboard v5 · smooth</span></h1>
+    <p>Stateful syscall supervisor: INIT → BOUND → LISTENING</p>
+  </div>
+  <span id="mode" class="badge">checking…</span>
+</header>
+
+<main>
+  <section class="card">
+    <h2>Demo a policy file <span class="hint" style="margin:0 0 0 8px;font-weight:400">pick a file, then run its scenarios (this runs the real binaries)</span></h2>
+    <div class="tabs" id="tabs"></div>
+    <div id="polbody"><div class="empty">Start <code>python3 ui/server.py</code> to run the policy demos.</div></div>
+  </section>
+
+  <section class="card">
+    <h2>Compare defenses (no policy file)</h2>
+    <div class="controls">
+      <label>Defense
+        <select id="defense">
+          <option value="supervisor">supervisor (stateful)</option>
+          <option value="namelist">namelist (names only)</option>
+          <option value="none">no sandbox</option>
+        </select>
+      </label>
+      <label>Attack
+        <select id="prog"></select>
+      </label>
+      <button class="run" id="go">Run</button>
+    </div>
+  </section>
+
+  <div class="cols">
+    <section class="card">
+      <h2>Protocol state</h2>
+      <div class="states">
+        <div class="node" data-s="INIT">INIT</div>
+        <div class="arrow">bind()<br>→</div>
+        <div class="node" data-s="BOUND">BOUND</div>
+        <div class="arrow">listen()<br>→</div>
+        <div class="node" data-s="LISTENING">LISTENING</div>
+      </div>
+      <p class="hint">Once LISTENING, connect / execve / execveat / sendto / sendmsg are illegal.</p>
+      <dl class="pcb">
+        <dt>Process (tgid)</dt><dd id="pcb-tgid">–</dd>
+        <dt>State</dt><dd id="pcb-state">–</dd>
+        <dt>Tracked fds</dt><dd id="pcb-fds">–</dd>
+      </dl>
+      <div id="verdict"></div>
+    </section>
+
+    <section class="card">
+      <h2>Syscall log</h2>
+      <div id="log"><div class="empty">Pick a defense and an attack, then press Run.</div></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Escape test bake-off (7 attacks × 3 defenses)</h2>
+    <table>
+      <thead><tr><th>Attack</th><th>No sandbox</th><th>Namelist</th><th>Supervisor</th></tr></thead>
+      <tbody id="bake"></tbody>
+    </table>
+  </section>
+
+  <section class="card">
+    <h2 style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">Overhead (start + echo + exit cycles)
+      <button id="remeasure" style="margin-left:auto;font-size:13px;padding:6px 12px">Re-measure now</button></h2>
+    <div class="bars" id="bench"></div>
+    <p class="hint" id="bench-status"></p>
+    <div id="hist" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"></div>
+  </section>
+</main>
+
+<script>
+// ---------- Real output captured from ./supervisor and ./namelist (replay mode) ----------
+const SAMPLE = {
+  "supervisor|attack": `supervisor: trap pid=138 tgid=138 syscall=execve (nr=59) -> CONTINUE (INIT -> INIT)
+supervisor:   PCB tgid=138 state=INIT  fds: (none yet)
+supervisor: trap pid=138 tgid=138 syscall=socket (nr=41) -> CONTINUE (INIT -> INIT)
+supervisor:   PCB tgid=138 state=INIT  fds: (none yet)
+supervisor: trap pid=138 tgid=138 syscall=bind (nr=49) -> CONTINUE (INIT -> BOUND)
+supervisor:   PCB tgid=138 state=BOUND  fds: [3]=BOUND
+supervisor: trap pid=138 tgid=138 syscall=listen (nr=50) -> CONTINUE (BOUND -> LISTENING)
+supervisor:   PCB tgid=138 state=LISTENING  fds: [3]=LISTENING
+attack: listening — now doing an illegal connect()
+supervisor: trap pid=138 tgid=138 syscall=socket (nr=41) -> CONTINUE (LISTENING -> LISTENING)
+supervisor:   PCB tgid=138 state=LISTENING  fds: [3]=LISTENING
+supervisor: trap pid=138 tgid=138 syscall=connect (nr=42) -> DENY
+supervisor: PROTOCOL VIOLATION: connect at state LISTENING target=127.0.0.1:9 — killing pid 138`,
+  "namelist|attack": `namelist: name 'execve' is on the allowlist -> CONTINUE
+namelist: name 'socket' is on the allowlist -> CONTINUE
+namelist: name 'bind' is on the allowlist -> CONTINUE
+namelist: name 'listen' is on the allowlist -> CONTINUE
+attack: listening — now doing an illegal connect()
+namelist: name 'socket' is on the allowlist -> CONTINUE
+namelist: name 'connect' is on the allowlist -> CONTINUE`
+};
+const BENCH_FALLBACK = `no_supervisor         N=40  total=1131.5 ms  avg=28.29 ms/run
+supervisor            N=40  total=1282.0 ms  avg=32.05 ms/run`;
+const BAKE = [
+  ["connect() after listen()", 0,0,1], ["execve() after listen()", 0,0,1],
+  ["execveat() after listen()", 0,0,1], ["fork() then connect() in child", 0,0,1],
+  ["connect() via 32-bit (ia32) ABI", 0,1,1], ["UDP sendto() to arbitrary address", 0,0,1],
+  ["UDP sendmsg() to arbitrary address", 0,0,1]
+];
+
+const $ = id => document.getElementById(id);
+let live = false, es = null;
+
+// ---------- static sections ----------
+const chip = b => `<span class="chip ${b?'b':'n'}">${b?'BLOCKED':'NOT BLOCKED'}</span>`;
+$("bake").innerHTML = BAKE.map(r => `<tr><td>${r[0]}</td><td>${chip(r[1])}</td><td>${chip(r[2])}</td><td>${chip(r[3])}</td></tr>`).join("");
+
+function drawBars(rows){
+  const max = Math.max(...rows.map(r => r.v)), base = rows[0].v;
+  $("bench").innerHTML = rows.map((r,i) => `
+    <div class="bar"><span>${r.n}</span>
+      <div class="track"><div class="fill ${i?'s':''}" style="width:${(r.v/max*100).toFixed(1)}%"></div></div>
+      <span>${r.v.toFixed(2)} ms${i?` (+${((r.v/base-1)*100).toFixed(1)}%)`:''}</span></div>`).join("");
+}
+function drawStatic(text){
+  const rows = [...text.matchAll(/^(\w+)\s+N=\d+.*?avg=([\d.]+)\s*ms\/run/gm)].map(m => ({n:m[1].replace("_"," "), v:+m[2]}));
+  if(rows.length){ drawBars(rows); $("bench-status").textContent = "Saved numbers from phase8_results.txt. Start ui/server.py to measure live."; }
+}
+const hist = []; let measuring = false;
+async function measure(){
+  if(!live || measuring) return;
+  measuring = true; $("remeasure").disabled = true;
+  $("bench-status").textContent = "Measuring (20 plain + 20 supervised cycles)…";
+  try{
+    const r = await fetch("/api/bench/run?n=20"); if(!r.ok) throw new Error(await r.text());
+    const d = await r.json();
+    drawBars([{n:"no supervisor", v:d.base_ms},{n:"supervisor", v:d.sup_ms}]);
+    hist.unshift({ms:+(d.sup_ms-d.base_ms).toFixed(2), pct:d.overhead_pct}); if(hist.length > 8) hist.pop();
+    $("hist").innerHTML = '<span class="hint" style="margin:0">Extra cost per run, newest first:</span>' +
+      hist.map(p => `<span class="chip" style="background:var(--blue-l);color:var(--blue)">+${p.ms} ms (${p.pct}%)</span>`).join("");
+    $("bench-status").textContent = `Live, just now: N=${d.n} each, spread ±${d.base_sd} ms (plain) / ±${d.sup_sd} ms (supervised). Changes every run. The fixed cost is the extra ms; the % depends on how fast the baseline is (here the baseline has no shell or nc start-up, so % looks larger than in phase8_results.txt).`;
+  }catch(e){ $("bench-status").textContent = "Measurement failed: " + e.message; }
+  measuring = false; $("remeasure").disabled = false;
+}
+$("remeasure").onclick = measure;
+
+// ---------- state machine / log ----------
+function setState(s, bad){
+  document.querySelectorAll(".node").forEach(n => {
+    n.classList.remove("on","bad");
+    if(n.dataset.s === s) n.classList.add(bad ? "bad" : "on");
+  });
+  $("pcb-state").textContent = s || "–";
+}
+function addRow(cls, tag, text){
+  const log = $("log");
+  const d = document.createElement("div");
+  d.className = "row " + cls;
+  d.innerHTML = tag ? `<span class="tag">${tag}</span><span></span>` : "<span></span>";
+  d.lastElementChild.textContent = text;
+  log.appendChild(d); log.scrollTop = log.scrollHeight;
+}
+let violated = false, lastState = null;
+function handle(line){
+  let m;
+  if(line.startsWith("$ ")){ addRow("dim","RUN", line.slice(2)); return; }
+  if(/^client[<>] /.test(line)){ addRow("app", line[6] === ">" ? "CLIENT →" : "CLIENT ←", line.slice(8)); return; }
+  if((m = line.match(/PCB tgid=(\d+) state=(\w+)\s+fds: (.*)/))){
+    $("pcb-tgid").textContent = m[1]; $("pcb-fds").textContent = m[3];
+    lastState = m[2]; if(!violated) setState(m[2]); return;
+  }
+  if((m = line.match(/syscall=(\w+) \(nr=(\d+)\) -> (CONTINUE|DENY)(?: \((\w+) -> (\w+)\))?/))){
+    if(m[3] === "DENY") addRow("deny","DENY", `${m[1]}()  [nr ${m[2]}]`);
+    else addRow("allow","ALLOW", `${m[1]}()  ${m[4] ? m[4]+" → "+m[5] : ""}`);
+    return;
+  }
+  if(line.includes("PROTOCOL VIOLATION")){
+    violated = true; setState(lastState, true);
+    addRow("deny","KILL", line.replace(/^supervisor:\s*/,""));
+    return;
+  }
+  if((m = line.match(/name '(\w+)' is on the allowlist/))){
+    addRow("name","NAME OK", `${m[1]}()  allowed — namelist has no notion of state`); return;
+  }
+  if(/^(attack|agent|escape)/.test(line) || /^\S+: /.test(line) && !/^(supervisor|namelist):/.test(line)){
+    addRow("app","PROGRAM", line); return;
+  }
+  if(line.trim() && !/^(supervisor|namelist):\s+(using|I am|starting|watching|allowlist| )/.test(line)) addRow("dim","", line);
+}
+let curKind = "attack";
+function busy(on){ document.querySelectorAll(".sbtn,#go").forEach(b => b.disabled = on); }
+function finish(defense){
+  const v = $("verdict");
+  if(curKind === "legit"){
+    if(violated){ v.className = "bad"; v.textContent = "UNEXPECTED: legitimate behaviour was killed (false positive)."; }
+    else { v.className = "ok"; v.textContent = "NO FALSE POSITIVE: the legitimate server ran normally."; }
+  } else if(curKind === "allowed"){
+    if(violated){ v.className = "bad"; v.textContent = "KILLED: this policy forbids it."; }
+    else { v.className = "ok"; v.textContent = "ALLOWED by this policy: connect() before listen() is legal here."; }
+  } else if(violated){ v.className = "bad"; v.textContent = "BLOCKED: the process was denied at the illegal syscall."; }
+  else { v.className = "warn"; v.textContent = defense === "supervisor"
+    ? "Finished with no violation detected." : "NOT BLOCKED: the attack ran to completion."; }
+  busy(false);
+  measure();   // re-measure overhead after every run
+}
+function stream(url, defense, kind){
+  reset(); curKind = kind; busy(true);
+  if(es) es.close();
+  es = new EventSource(url);
+  es.onmessage = e => handle(JSON.parse(e.data));
+  es.addEventListener("done", () => { es.close(); finish(defense); });
+  es.onerror = () => { es.close(); finish(defense); };
+}
+function runPolicy(p, s, kind){
+  stream(`/api/policy/run?policy=${p}&scenario=${s}`, "supervisor", kind);
+  $("log").scrollIntoView({behavior:"smooth", block:"nearest"});
+}
+let POL = [];
+function showPolicy(id){
+  const p = POL.find(x => x.id === id);
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.p === id));
+  $("polbody").innerHTML = `<div class="polgrid">
+    <div><p class="hint" style="margin:0 0 12px">${p.blurb}</p>
+      <div class="sc">${p.scenarios.map(s => `<button class="sbtn ${s.kind}" data-s="${s.id}" data-k="${s.kind}">&#9654; ${s.label}</button>`).join("")}</div></div>
+    <div><div class="hint" style="margin:0 0 6px">${p.title}</div><pre id="poltext">loading…</pre></div></div>`;
+  document.querySelectorAll(".sbtn").forEach(b => b.onclick = () => runPolicy(id, b.dataset.s, b.dataset.k));
+  fetch("/api/policy/text?policy=" + id).then(r => r.text()).then(t => { $("poltext").textContent = t; });
+}
+async function loadPolicies(){
+  try{
+    const r = await fetch("/api/policies"); if(!r.ok) throw 0;
+    POL = await r.json();
+  }catch(e){
+    $("polbody").innerHTML = '<div class="empty">The running server is the OLD server.py (no /api/policies). Replace ui/server.py, stop it with Ctrl+C, run <code>python3 ui/server.py</code> again, then press Ctrl+Shift+R.</div>';
+    return;
+  }
+  $("tabs").innerHTML = POL.map(p => `<button class="tab" data-p="${p.id}">${p.title}</button>`).join("");
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => showPolicy(t.dataset.p));
+  showPolicy(POL[0].id);
+}
+
+// ---------- run ----------
+function reset(){
+  violated = false; lastState = null; $("log").innerHTML = ""; $("verdict").className = "";
+  setState(null); ["tgid","fds"].forEach(k => $("pcb-"+k).textContent = "–");
+}
+function run(){
+  const defense = $("defense").value, prog = $("prog").value;
+  if(live){ stream(`/api/run?defense=${defense}&prog=${prog}`, defense, "attack"); return; }
+  reset(); curKind = "attack"; busy(true);
+  {
+    const key = `${defense}|${prog}`, lines = SAMPLE[key];
+    if(!lines){
+      addRow("dim","","Replay mode only has captured output for: supervisor + attack, namelist + attack. Start ui/server.py for live runs.");
+      busy(false); return;
+    }
+    let i = 0; const L = lines.split("\n");
+    const t = setInterval(() => { if(i < L.length) handle(L[i++]); else { clearInterval(t); finish(defense); } }, 450);
+  }
+}
+$("go").onclick = run;
+
+// ---------- boot ----------
+const FALLBACK_PROGS = [{id:"attack", label:"connect after listen"}];
+function fillProgs(list){ $("prog").innerHTML = list.map(p => `<option value="${p.id}">${p.label}</option>`).join(""); }
+(async () => {
+  try{
+    const r = await fetch("/api/ping"); if(!r.ok) throw 0;
+    live = true;
+    fillProgs(await (await fetch("/api/progs")).json());
+    $("mode").textContent = "Live: running real binaries"; $("mode").classList.add("live");
+    loadPolicies();
+    measure();
+  }catch(e){
+    fillProgs(FALLBACK_PROGS); drawStatic(BENCH_FALLBACK); $("remeasure").disabled = true;
+    $("mode").textContent = "Replay: real captured output";
+  }
+})();
+</script>
+</body>
+</html>
